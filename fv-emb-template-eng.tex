@@ -50,16 +50,18 @@
 
 \begin{flushleft}
 \begin{tabular}{|l|l|l|}
-\cline{1-1} \cline{3-3} 
+\cline{1-1} \cline{3-3}
 \emph{Seller:} &  & \emph{Customer:}\tabularnewline
-\cline{1-1} \cline{3-3} 
+\cline{1-1} \cline{3-3}
 <% @var seller-name %> &  & <% @var buyer-name %>\tabularnewline
 <% @var seller-address %> &  & <% @var buyer-address %>\tabularnewline
 <% @var seller-postcode %> <% @var seller-city %> &  & <% @var buyer-postcode %> <% @var buyer-city %>\tabularnewline
 Company number (NIP): PL <% @var seller-nip %> &  & <% (when (getf env :buyer-name) "NIP:") %><% @var buyer-nip %>\tabularnewline
 SWIFT: ALBPPLPW\\
-IBAN: PL <% @var seller-account %> &  & \tabularnewline
-\cline{1-1} \cline{3-3} 
+% ABA: 026008044\\
+% mBank BREXPLPWMBK FFC Michał Psota\\
+acct PL <% @var seller-account %> &  & \tabularnewline
+\cline{1-1} \cline{3-3}
 \end{tabular}
 \par\end{flushleft}
 
@@ -82,21 +84,21 @@ IBAN: PL <% @var seller-account %> &  & \tabularnewline
 
 <% (dolist (item-calculations (getf env :calculated-items))
 	   (format t
-		   "~{\\multicolumn\{1\}\{|r|\}\{~a\} & \\multicolumn\{1\}\{>\{\\raggedleft\}p\{0.2\\paperwidth\}|\}\{~a\} & \\multicolumn\{1\}\{r|\}\{~a \} & ~a & ~a & ~a\\ & ~a & ~a \\tabularnewline\\hline~}~%%~%"
+		   "~{\\multicolumn\{1\}\{|r|\}\{~a\} & \\multicolumn\{1\}\{>\{\\raggedleft\}p\{0.2\\paperwidth\}|\}\{~a\} & \\multicolumn\{1\}\{r|\}\{~a \} & {~d} & ~a & ~a\\ & ~a & ~a \\tabularnewline\\hline~}~%%~%"
 		   item-calculations)) %>
 
 %%% This is the summary section:
 
 % &  &  & Łącznie: & <% @var net-total %> \currencyShort{} & X & <% @var vat-total %> \currencyShort{} & <% @var gross-total %> \currencyShort{}\tabularnewline
-%\cline{5-8} 
+%\cline{5-8}
 % <% (when (getf env :23-net-total) %> &  &  &  & <% @var 23-net-total %> \currencyShort{} & 23\% & <% @var 23-vat-total %> \currencyShort{} & <% @var 23-gross-total %> \currencyShort{}\tabularnewline
 %\cline{5-8} <% ) %>
 % &  &  &  & <% @var 8-net-total %> \currencyShort{} & 8\% & <% @var 8-vat-total %> \currencyShort{} & <% @var 8-gross-total %> \currencyShort{}\tabularnewline
-%\cline{5-8} 
+%\cline{5-8}
 % &  &  &  & <% @var 5-net-total %> \currencyShort{} & 5\% & <% @var 5-vat-total %> \currencyShort{} & <% @var 5-gross-total %> \currencyShort{}\tabularnewline
-%\cline{5-8} 
+%\cline{5-8}
 &  &  & Total: & <% @var zw-net-total %> \currencyShort{} & np & 0,00 PLN & <% @var zw-net-total %> \currencyShort{}\tabularnewline
-\cline{5-8} 
+\cline{5-8}
 \end{tabular}
 \par\end{flushright}
 

@@ -32,9 +32,9 @@
 \par\end{flushleft}{\Large \par}
 
 \begin{flushleft}
-\emph{Invoice no.} <% @var invoice-id %>\\
-\emph{Date of issue:} <% @var invoice-date-full %>\\
-\emph{Date of sale:} <% @var invoice-date-full %>
+\emph{Numer:} <% @var invoice-id %>\\
+\emph{Data wystawienia:} <% @var invoice-date-full %>\\
+\emph{Data sprzedaży:} <% @var invoice-date-full %>
 \par\end{flushleft}
 
 \begin{flushleft}
@@ -51,14 +51,13 @@
 \begin{flushleft}
 \begin{tabular}{|l|l|l|}
 \cline{1-1} \cline{3-3} 
-\emph{Seller:} &  & \emph{Customer:}\tabularnewline
+\emph{Sprzedawca:} &  & \emph{Nabywca:}\tabularnewline
 \cline{1-1} \cline{3-3} 
 <% @var seller-name %> &  & <% @var buyer-name %>\tabularnewline
 <% @var seller-address %> &  & <% @var buyer-address %>\tabularnewline
 <% @var seller-postcode %> <% @var seller-city %> &  & <% @var buyer-postcode %> <% @var buyer-city %>\tabularnewline
-Company number (NIP): PL <% @var seller-nip %> &  & <% (when (getf env :buyer-name) "NIP:") %><% @var buyer-nip %>\tabularnewline
-SWIFT: ALBPPLPW\\
-IBAN: PL <% @var seller-account %> &  & \tabularnewline
+NIP: <% @var seller-nip %> &  & <% (when (getf env :buyer-name) "NIP:") %><% @var buyer-nip %>\tabularnewline
+Konto: <% @var seller-account %> &  & \tabularnewline
 \cline{1-1} \cline{3-3} 
 \end{tabular}
 \par\end{flushleft}
@@ -74,15 +73,15 @@ IBAN: PL <% @var seller-account %> &  & \tabularnewline
 \begin{flushright}
 %\medskip{}
 \begin{tabular}{r>{\raggedleft}p{0.2\paperwidth}rr|r|r|r|r|}
-  No. & Services & Net price & \multicolumn{1}{r}{Quantity} & \multicolumn{1}{r}{Net value} & \multicolumn{1}{r}{VAT} & \multicolumn{1}{r}{VAT value} & \multicolumn{1}{r}{Gross value}\tabularnewline
+  lp. & nazwa & cena netto & \multicolumn{1}{r}{ilość} & \multicolumn{1}{r}{wartość netto} & \multicolumn{1}{r}{VAT} & \multicolumn{1}{r}{kwota VAT} & \multicolumn{1}{r}{wartość brutto}\tabularnewline
   &  & \currencyShort{} &  & \multicolumn{1}{r}{\currencyShort{}} & \multicolumn{1}{r}{} & \multicolumn{1}{r}{PLN} & \multicolumn{1}{r}{\currencyShort{}}\tabularnewline
-\hline
+  \hline
 
 %%% This has to be looped across the item list:
 
 <% (dolist (item-calculations (getf env :calculated-items))
 	   (format t
-		   "~{\\multicolumn\{1\}\{|r|\}\{~a\} & \\multicolumn\{1\}\{>\{\\raggedleft\}p\{0.2\\paperwidth\}|\}\{~a\} & \\multicolumn\{1\}\{r|\}\{~a \} & ~a & ~a & ~a\\ & ~a & ~a \\tabularnewline\\hline~}~%%~%"
+		   "~{\\multicolumn\{1\}\{|r|\}\{~a\} & \\multicolumn\{1\}\{>\{\\raggedleft\}p\{0.2\\paperwidth\}|\}\{~a\} & \\multicolumn\{1\}\{r|\}\{~a \} & ~a & ~a  & ~a\\ & ~a  & ~a \\tabularnewline\\hline~}~%%~%"
 		   item-calculations)) %>
 
 %%% This is the summary section:
@@ -95,7 +94,7 @@ IBAN: PL <% @var seller-account %> &  & \tabularnewline
 %\cline{5-8} 
 % &  &  &  & <% @var 5-net-total %> \currencyShort{} & 5\% & <% @var 5-vat-total %> \currencyShort{} & <% @var 5-gross-total %> \currencyShort{}\tabularnewline
 %\cline{5-8} 
-&  &  & Total: & <% @var zw-net-total %> \currencyShort{} & np & 0,00 PLN & <% @var zw-net-total %> \currencyShort{}\tabularnewline
+&  &  & Łącznie: & <% @var zw-net-total %> \currencyShort{} & np & 0,00 PLN & <% @var zw-net-total %> \currencyShort{}\tabularnewline
 \cline{5-8} 
 \end{tabular}
 \par\end{flushright}
@@ -108,9 +107,9 @@ IBAN: PL <% @var seller-account %> &  & \tabularnewline
 
 
 \begin{flushright}
-\textbf{Total: <% @var gross-total %> \currencyShort{}.}\\
-In words: <% @var words-gross-total %>, <% @var gross-total-cent %>/100.\\
+\textbf{Do zapłaty: <% @var gross-total %> \currencyShort{}.}\\
+Słownie: <% @var words-gross-total %>, <% @var gross-total-cent %>/100.\\
 <% @var payment-form %> \\%%% Forma płatności.
-Remarks: Obciążenie odwrotne. / Reverse charge.\\
+Uwagi: Obciążenie odwrotne. / Reverse charge.\\
 \par\end{flushright}
 \end{document}

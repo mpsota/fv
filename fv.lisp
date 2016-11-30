@@ -280,8 +280,8 @@ type (not nil for cash) and payment days."
 (defun get-currency-short (currency)
   (ecase currency
     (:eur "\\€")
-    (:usd "usd")
-    (:pln "zł")))
+    (:usd "USD")
+    (:pln "PLN")))
 
 (defun get-account-number (currency)
   (or (case currency
@@ -310,8 +310,26 @@ type (not nil for cash) and payment days."
 ;;;
 ;;; calculate all necessary invoice fields
 ;;;
+(defun create-payment-form-string (payment-days invoice-date invoice-month invoice-year language)
+  (let ((pay-by-cash (ecase language
+                       (:pl "Płatne gotówką.")
+                       (:eng "")))
+        (pay-by-bank-transfer (ecase language
+                                (:pl "Płatne przelewem do dnia: ~d/~d/~d (~d days).")
+                                (:eng "To pay by bank transfer before: ~d/~d/~d (~d dni)."))))
+    (if (<= payment-days 0)
+        pay-by-cash
+        (multiple-value-bind (a b c day month year d e f)
+            (decode-universal-time
+             (+ (* payment-days 86400)
+                (encode-universal-time
+                 0 0 0 invoice-date invoice-month invoice-year)))
+          ;; TODO: UTC -> localtime
+          (declare (ignore a b c d e f))
+          (format nil pay-by-bank-transfer
+                  day month year payment-days)))))
 
-(defun calculate-invoice-fields (invoice)
+(defun calculate-invoice-fields (invoice invoice-language)
   "Returns a plist with calculations of various invoice fields needed
 for invoice visualisation and printout."
   (let* ((gross-total       0) ;; do we need to declare all those here?
@@ -343,7 +361,8 @@ for invoice visualisation and printout."
              (item-count     (getf item :count))
              (item-title     (getf item :title))
              (item-net       (getf item :net))
-             (vat-multiplier (/ (if (equal item-vat "zw") ;; the "zw" (zwolniony)
+             (vat-multiplier (/ (if (or (equal item-vat "zw") ;; the "zw" (zwolniony)
+                                        (equal item-vat "np")) ;; the "np" (nie podlega)
                                     0         ;; VAT rate is
                                     item-vat) ;; effectively 0%
                                 100))) ;; TODO -- check if interger here OK
@@ -359,17 +378,21 @@ for invoice visualisation and printout."
                (incf 5-net-total    (* item-count item-net))
                (incf 5-vat-total    (* item-count item-net 0.05))
                (incf 5-gross-total  (* item-count item-net 1.05)))
-              ((equal item-vat "zw")
+              ((or (equal item-vat "zw")
+                   (equal item-vat "np"))
                (incf zw-net-total   (* item-count item-net))))
         (push (list item-position
                     item-title
-                    (polish-monetize item-net)
+                    (monetize item-net invoice-language)
                     item-count
-                    (polish-monetize (* item-net item-count))
-                    (if (equal item-vat "zw") "zw."
-                        (format nil "~d\\%" item-vat))
-                    (polish-monetize (* item-net item-count vat-multiplier))
-                    (polish-monetize (* item-net item-count (1+ vat-multiplier))))
+                    (monetize (* item-net item-count) invoice-language)
+                    (cond
+                      ((equal item-vat "np") "np")
+                      ((equal item-vat "zw") "zw.")
+                      (t
+                        (format nil "~d\\%" item-vat)))
+                    (monetize (* item-net item-count vat-multiplier) invoice-language)
+                    (monetize (* item-net item-count (1+ vat-multiplier)) invoice-language))
               calculated-items)
         (incf item-position)))
 
@@ -388,43 +411,29 @@ for invoice visualisation and printout."
             (format-print-cardinal words gross-total-int)
             (print-currency gross-total-int words invoice-currency)))
 
-    (setf payment-form
-          (if (<= payment-days 0)
-              "Płatne gotówką."
-              (multiple-value-bind (a b c day month year d e f)
-                  (decode-universal-time
-                   (+ (* payment-days 86400)
-                      (encode-universal-time
-                       0 0 0 invoice-date invoice-month invoice-year)))
-                ;; TODO: UTC -> localtime
-                (declare (ignore a b c d e f))
-                (format nil
-                        "Płatne przelewem do dnia: ~d/~d/~d (~d dni)."
-                        day month year payment-days))))
-
     ;; now we return all we calculated in a single plist:
-    (list :gross-total       (polish-monetize gross-total)
+    (list :gross-total       (monetize gross-total invoice-language)
           :gross-total-int   gross-total-int
           :gross-total-cent  gross-total-cent
-          :net-total         (polish-monetize net-total)
-          :vat-total         (polish-monetize vat-total)
+          :net-total         (monetize net-total invoice-language)
+          :vat-total         (monetize vat-total invoice-language)
           :words-gross-total words-gross-total
           :payment-days      payment-days
           :invoice-date      invoice-date
           :invoice-month     invoice-month
           :invoice-year      invoice-year
           :currency  invoice-currency
-          :payment-form      payment-form
-          :23-net-total      (polish-monetize 23-net-total)
-          :23-vat-total      (polish-monetize 23-vat-total)
-          :23-gross-total    (polish-monetize 23-gross-total)
-          :8-net-total       (polish-monetize 8-net-total)
-          :8-vat-total       (polish-monetize 8-vat-total)
-          :8-gross-total     (polish-monetize 8-gross-total)
-          :5-net-total       (polish-monetize 5-net-total)
-          :5-vat-total       (polish-monetize 5-vat-total)
-          :5-gross-total     (polish-monetize 5-gross-total)
-          :zw-net-total      (polish-monetize zw-net-total)
+          :payment-form      (create-payment-form-string payment-days invoice-date invoice-month invoice-year invoice-language)
+          :23-net-total      (monetize 23-net-total invoice-language)
+          :23-vat-total      (monetize 23-vat-total invoice-language)
+          :23-gross-total    (monetize 23-gross-total invoice-language)
+          :8-net-total       (monetize 8-net-total invoice-language)
+          :8-vat-total       (monetize 8-vat-total invoice-language)
+          :8-gross-total     (monetize 8-gross-total invoice-language)
+          :5-net-total       (monetize 5-net-total invoice-language)
+          :5-vat-total       (monetize 5-vat-total invoice-language)
+          :5-gross-total     (monetize 5-gross-total invoice-language)
+          :zw-net-total      (monetize zw-net-total invoice-language)
           :calculated-items  (reverse calculated-items))))
 
 ;;;
@@ -432,11 +441,16 @@ for invoice visualisation and printout."
 ;;; How about using: (format nil "~,,'.,3:D" number)? Or something…
 ;;;
 
-(defun polish-monetize (value)
+(defun monetize-string (language)
+  (ecase language
+    (:pl "~,,'.:d,~2,'0d")
+    (:eng "~,,',:d.~2,'0d")))
+
+(defun monetize (value language)
   "Convert a float to a properly rounded string (to cents) with a
 decimal comma and thousand dot separators."
   (multiple-value-bind (quot rem) (truncate value)
-    (format nil "~,,'.:d,~2,'0d"
+    (format nil (monetize-string language)
             quot
             (round (rational (abs rem)) 1/100))))
 
@@ -445,7 +459,18 @@ decimal comma and thousand dot separators."
 
 (defvar *fv-dir* (user-homedir-pathname))
 
-(defun print-invoice (invoice &key mail (fv-dir *fv-dir*) (invoice-title "Faktura VAT"))
+(defun path-to-tex-template (invoice invoice-language)
+  (merge-pathnames *program-directory*
+                   (make-pathname :name
+                                  (cond
+                                    ((getf invoice :corrective)
+                                     "fk-emb-template")
+                                    (t (ecase invoice-language
+                                         (:pl "fv-emb-template-pl")
+                                         (:eng "fv-emb-template-eng"))))
+                                  :type "tex")))
+
+(defun print-invoice (invoice &key mail (fv-dir *fv-dir*) (invoice-title "Faktura VAT") (invoice-language :pl))
   "Creates a tex printout file of a given invoice by means of executing emb code in a tex template.
 If told to, mails the invoice to the email address defined for the client."
   (let* ((env-plist
@@ -471,25 +496,21 @@ If told to, mails the invoice to the email address defined for the client."
          (output-filename (merge-pathnames
                            fv-dir
                            (format nil
-                                   (if (getf invoice :corrective)
-                                       "fk-~d-~2,'0d-~2,'0d-~a.tex"
-                                       "fv-~d-~2,'0d-~2,'0d-~a.tex")
+                                   "~a-~d-~2,'0d-~2,'0d-~a~:[~;~:*~a~].tex"
+                                   (if (getf invoice :corrective) "fk" "fv")
                                    (getf invoice :year)
                                    (getf invoice :month)
                                    (getf invoice :number)
-                                   (getf (getf invoice :client) :nick)))))
-    (emb:register-emb "template" (merge-pathnames *program-directory*
-                                                  (make-pathname :name
-                                                                 (if (getf invoice :corrective)
-                                                                     "fk-emb-template"
-                                                                     "fv-emb-template")
-                                                                 :type "tex")))
+                                   (getf (getf invoice :client) :nick)
+                                   (unless (eq invoice-language :pl)
+                                     invoice-language)))))
+    (emb:register-emb "template" (path-to-tex-template invoice invoice-language))
     (with-open-file (output output-filename
                             :direction :output
                             :if-exists :supersede)
       (format output "~a"
               (emb:execute-emb "template"
-                               :env (append env-plist (calculate-invoice-fields invoice)))))
+                               :env (append env-plist (calculate-invoice-fields invoice invoice-language)))))
     #-unix
     (Error "Windows is not supported")
     (format t "DEBUG: Running pdflatex... /usr/bin/pdflatex -output-directory=~a ~a" fv-dir (namestring output-filename))
